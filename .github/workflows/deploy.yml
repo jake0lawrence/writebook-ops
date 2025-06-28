@@ -1,0 +1,47 @@
+name: Build & Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}  # e.g. ghcr.io/jake0lawrence/writebook
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        run: |
+          docker build \
+            --build-arg SECRET_KEY_BASE=${{ secrets.SECRET_KEY_BASE }} \
+            --build-arg GA_ID=${{ secrets.GA_ID }} \
+            -t $IMAGE_NAME:${{ github.sha }} .
+      - run: docker push $IMAGE_NAME:${{ github.sha }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            docker pull $IMAGE_NAME:${{ github.sha }}
+            docker tag  $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
+            cd /opt/writebook
+            docker compose up -d
