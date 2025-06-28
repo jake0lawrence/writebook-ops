@@ -5,13 +5,14 @@ on:
     branches: [main]
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}  # e.g. ghcr.io/jake0lawrence/writebook
+  IMAGE_NAME: ghcr.io/${{ github.repository }}   # e.g. ghcr.io/jake0lawrence/writebook
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       packages: write
+
     steps:
       - uses: actions/checkout@v4
 
@@ -25,17 +26,19 @@ jobs:
       - name: Build image
         run: |
           docker build \
-            --build-arg SECRET_KEY_BASE=${{ secrets.SECRET_KEY_BASE }} \
             --build-arg GA_ID=${{ secrets.GA_ID }} \
+            --build-arg SECRET_KEY_BASE=${{ secrets.SECRET_KEY_BASE }} \
             -t $IMAGE_NAME:${{ github.sha }} .
-      - run: docker push $IMAGE_NAME:${{ github.sha }}
+      - name: Push image
+        run: docker push $IMAGE_NAME:${{ github.sha }}
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Pull & restart on droplet
+        uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -45,3 +48,4 @@ jobs:
             docker tag  $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
             cd /opt/writebook
             docker compose up -d
+            echo "Deployed $IMAGE_NAME:${{ github.sha }}"
