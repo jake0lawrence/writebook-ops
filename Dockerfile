@@ -1,5 +1,5 @@
 # ./Dockerfile  — build your patched Writebook image
-FROM 37signals/writebook:latest
+FROM registry.once.com/writebook:latest
 
 # ---- customizations ---------------------------------------------------------
 # Copy persistent CSS, GA snippet, etc.
