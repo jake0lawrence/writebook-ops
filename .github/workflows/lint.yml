@@ -1,0 +1,30 @@
+name: Lint & Unit-Test
+
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Node / JS / TS
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: |
+          npm ci
+          npm run lint      # eslint / prettier
+          npm test          # jest / vitest etc.
+
+      # Shell scripts
+      - name: Shellcheck
+        uses: ludeeus/action-shellcheck@v2
+        with: { severity: warning }
+
+      # Python (optional)
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: |
+          pip install pytest
+          pytest || true          # only if you add tests
