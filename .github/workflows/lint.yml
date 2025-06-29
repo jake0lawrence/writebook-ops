@@ -19,7 +19,7 @@ jobs:
 
       # ── Shell scripts (ShellCheck) ─────────────────
       - name: ShellCheck
-        uses: ludeeus/action-shellcheck@v2.0.0   # ← stable tag
+        uses: ludeeus/action-shellcheck@v1.1.0   # ← or @v2
         with: { severity: warning }
 
       # ── Python (optional) ──────────────────────────
