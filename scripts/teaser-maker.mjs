@@ -19,10 +19,10 @@ teaser.title = "(Preview) " + page.title;
 teaser.body  = page.body.split[0,${words}].join(" ") + "...";
 teaser.public = true;
 teaser.save!
-puts "Created teaser page → \#{teaser.slug}"
+puts "Created teaser page → \{teaser.slug}"
 `;
 
 execSync(
   `ssh -oStrictHostKeyChecking=no ${SSH} ` +
-  `"cd /opt/writebook && bin/rails runner \\\"${ruby}\\\""`
+  `cd /opt/writebook && bin/rails runner \\\${ruby}\\\`
 , { stdio: "inherit" });
