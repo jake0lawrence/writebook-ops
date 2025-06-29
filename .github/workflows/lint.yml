@@ -19,8 +19,7 @@ jobs:
 
       # ── Shell scripts (ShellCheck) ─────────────────
       - name: ShellCheck
-        uses: ludeeus/action-shellcheck@v1.1.0   # ← or @v2
-        with: { severity: warning }
+        run: docker run --rm -v "$PWD:/mnt" koalaman/shellcheck:stable **/*.sh
 
       # ── Python (optional) ──────────────────────────
       - uses: actions/setup-python@v5
