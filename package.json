@@ -1,0 +1,34 @@
+{
+  "name": "writebook-ops",
+  "version": "0.1.0",
+  "description": "Utility scripts & automations for my self-hosted Writebook instance",
+  "author": "Jake Lawrence",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "import": "node scripts/import-chapters.js",
+    "teaser": "node scripts/teaser-maker.mjs",
+    "tweet":  "node scripts/teaser-tweet.mjs",
+    "health": "node scripts/healthcheck.sh",
+    "lint":   "eslint --ext .js,.mjs scripts",
+    "format": "prettier -w scripts"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "commander": "^11.1.0",
+    "dotenv": "^16.4.5",
+    "marked": "^12.0.2",
+    "node-fetch": "^3.3.2",
+    "slugify": "^1.6.6",
+    "twitter-api-v2": "^1.18.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "prettier": "^3.3.2"
+  }
+}
