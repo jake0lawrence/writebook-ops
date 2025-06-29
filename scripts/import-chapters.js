@@ -28,11 +28,11 @@ for (const file of readdirSync(DIR).filter(f => extname(f) === ".md")) {
   execSync(
     `ssh -oStrictHostKeyChecking=no ${SSH} ` +
     `"cd /opt/writebook && ` +
-    `bin/rails runner \\\"` +
+    `bin/rails runner \\\` +
       `p = Page.find_or_initialize_by(title: '${title}'); ` +
-      `p.body = \\\\\"${md}\\\\\"; ` +
+      `p.body = \\\\\${md}\\\\\; ` +
       `p.published_at ||= Time.zone.parse('${pubAt}'); ` +
       `p.save!` +
-    `\\\""`
+    `\\\`
   , { stdio: "inherit" });
 }
