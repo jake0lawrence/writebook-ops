@@ -2,16 +2,9 @@
 /**
  * Bulk-import Markdown files in /content into Writebook pages (idempotent).
  *
- *   • Requires SSH key-based access to the droplet
- *       – env  SSH_HOST   e.g. books.jakelawrence.io
- *       – env  SSH_USER   e.g. root
- *
- *   • For every *.md file:
- *       – title = file name (strip leading digits + dashes)
- *       – body  = file contents
- *       – pubAt = YYYY-01-01 (derived from first two digits of the file name)
- *
- *   Re-running the script updates pages rather than duplicating them.
+ *   • Needs SSH key-based access to the droplet
+ *       – env  SSH_HOST   (e.g. books.jakelawrence.io)
+ *       – env  SSH_USER   (e.g. root)
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -28,35 +21,30 @@ if (!SSH_USER || !SSH_HOST) {
   process.exit(1);
 }
 
-/** Escape a JS string for safe insertion into a Bash string. */
-function shEscape(str) {
-  return str.replace(/([$`"\\])/g, "\\$1");
-}
+/** Escape text for safe insertion into Bash-quoted string. */
+const shEscape = str => str.replace(/([$`"\\])/g, "\\$1");
 
 for (const file of readdirSync(DIR).filter(f => extname(f) === ".md")) {
   const bodyRaw = readFileSync(join(DIR, file), "utf8");
-  const body    = shEscape(bodyRaw);
+  const bodyEsc = shEscape(bodyRaw);
 
   const title = shEscape(
     basename(file, ".md")
-      .replace(/^\d+-/, "") // drop leading index like 01-
-      .replace(/-/g,  " ")
+      .replace(/^\d+-/, "") // drop numeric prefix
+      .replace(/-/g, " ")
   );
 
-  // publish date = 20YY-01-01, where YY comes from first two digits of file
-  const yearDigits = file.match(/^(\d{2})/)?.[1] || "25";
-  const pubAt      = `20${yearDigits}-01-01`;
+  const yy    = file.match(/^(\d{2})/)?.[1] || "25";   // derive year
+  const pubAt = `20${yy}-01-01`;
 
-  console.log(`→ Importing "${title}" …`);
+  console.log(`→ Importing "${title}"`);
 
   /* eslint-disable no-useless-escape */
   const ruby = `
-body = <<~'MD'
+page = Page.find_or_initialize_by(title: "${title}")
+page.body         = <<~'MD'
 ${bodyRaw}
 MD
-
-page              = Page.find_or_initialize_by(title: "${title}")
-page.body         = body
 page.published_at ||= Time.zone.parse("${pubAt}")
 page.save!
   `.trim();
