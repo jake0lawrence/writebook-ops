@@ -24,5 +24,5 @@ puts "Created teaser page → \{teaser.slug}"
 
 execSync(
   `ssh -oStrictHostKeyChecking=no ${SSH} ` +
-  `cd /opt/writebook && bin/rails runner \\\${ruby}\\\`
+  `cd /opt/writebook && bin/rails runner \${ruby}\``
 , { stdio: "inherit" });
