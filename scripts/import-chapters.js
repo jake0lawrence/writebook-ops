@@ -2,9 +2,16 @@
 /**
  * Bulk-import Markdown files in /content into Writebook pages (idempotent).
  *
- *   • Needs SSH key-based access to the droplet
- *       – env  SSH_HOST   (e.g. books.jakelawrence.io)
- *       – env  SSH_USER   (e.g. root)
+ * ENV REQUIREMENTS
+ *   SSH_HOST   — droplet hostname or IP  (e.g. books.jakelawrence.io)
+ *   SSH_USER   — user with Rails access (e.g. root or deploy)
+ *
+ * HOW IT WORKS
+ *   • Reads every *.md file in /content
+ *   • Derives the page title from the file name
+ *   • Uses the first two digits of the file name as YY → publishes 20YY-01-01
+ *   • Pushes the content into Writebook via `bin/rails runner`
+ *   • Re-runs update existing pages rather than duplicating them
  */
 
 import { readdirSync, readFileSync } from "node:fs";
@@ -17,27 +24,21 @@ const SSH_HOST = process.env.SSH_HOST;
 const SSH      = `${SSH_USER}@${SSH_HOST}`;
 
 if (!SSH_USER || !SSH_HOST) {
-  console.error("❌  Set SSH_USER and SSH_HOST env vars first.");
+  console.error("❌  Set SSH_USER and SSH_HOST environment variables first.");
   process.exit(1);
 }
 
-/** Escape text for safe insertion into Bash-quoted string. */
-const shEscape = str => str.replace(/([$`"\\])/g, "\\$1");
-
 for (const file of readdirSync(DIR).filter(f => extname(f) === ".md")) {
   const bodyRaw = readFileSync(join(DIR, file), "utf8");
-  const bodyEsc = shEscape(bodyRaw);
 
-  const title = shEscape(
-    basename(file, ".md")
-      .replace(/^\d+-/, "") // drop numeric prefix
-      .replace(/-/g, " ")
-  );
+  const title = basename(file, ".md")
+    .replace(/^\d+-/, "")       // strip leading numeric prefix (e.g. 01-)
+    .replace(/-/g, " ");
 
-  const yy    = file.match(/^(\d{2})/)?.[1] || "25";   // derive year
+  const yy    = file.match(/^(\d{2})/)?.[1] || "25";  // default to 2025
   const pubAt = `20${yy}-01-01`;
 
-  console.log(`→ Importing "${title}"`);
+  console.log(`→ Importing “${title}”`);
 
   /* eslint-disable no-useless-escape */
   const ruby = `
