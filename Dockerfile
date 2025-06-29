@@ -1,25 +1,53 @@
-# Dockerfile   (build Writebook from the zip you committed)
-# ---------------------------------------------------------
+# ────────────────────────────────────────────────────────────────
+# Build Writebook from writebook.zip (no private registry calls)
+# ────────────────────────────────────────────────────────────────
 
+# ------------ 1️⃣  Base image
 ARG RUBY_VERSION=3.3.5
 FROM ruby:${RUBY_VERSION}-slim AS base
 WORKDIR /rails
 
-# unzip tool
-RUN apt-get update -qq && apt-get install --no-install-recommends -y unzip
+# common OS deps
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+      build-essential git libvips curl unzip pkg-config libsqlite3-0
 
-# --- 1) copy the zipped source ------------------------------------------------
-# writebook.zip lives in repo root after checkout
-ADD writebook.zip /tmp/writebook.zip
+# ------------ 2️⃣  Build stage
+FROM base AS build
 
-# --- 2) unpack & clean --------------------------------------------------------
-RUN unzip /tmp/writebook.zip -d /rails && rm /tmp/writebook.zip
+# 2.1  Copy & unpack the source archive
+ADD writebook.zip /tmp/source.zip
+RUN unzip /tmp/source.zip -d /rails && rm /tmp/source.zip
 
-# --- 3) reuse the upstream build script --------------------------------------
-# the zip already contains the upstream Dockerfile and bin/docker-build script
+# 2.2  Install gems
+COPY Gemfile Gemfile.lock .ruby-version /rails/
+RUN bundle install --without development test \
+    && rm -rf ~/.bundle /usr/local/bundle/ruby/*/cache
+
+# 2.3  Add any overrides (optional: delete if not used)
+COPY patches/ /rails
+
+# 2.4  Pre-compile assets (needs a throw-away secret)
 ARG SECRET_KEY_BASE
-RUN ./bin/docker-build
+RUN SECRET_KEY_BASE=${SECRET_KEY_BASE:-dummy} \
+    bundle exec rails assets:precompile
 
-# final stage is produced inside bin/docker-build, so just set default CMD
+# ------------ 3️⃣  Runtime stage (small)
+FROM base
+
+# copy Ruby gems + compiled app from build stage
+COPY --from=build /usr/local/bundle /usr/local/bundle
+COPY --from=build /rails /rails
+
+# drop root, run as rails user
+RUN groupadd -r rails --gid 1000 && \
+    useradd rails --uid 1000 -g rails --create-home
+USER 1000:1000
+WORKDIR /rails
+
+ENV RAILS_ENV=production \
+    BUNDLE_DEPLOYMENT=1 \
+    BUNDLE_WITHOUT=development:test
+
 EXPOSE 80 443
 CMD ["bin/boot"]
