@@ -1,53 +1,41 @@
 name: Build & Deploy
-
 on:
   push:
     branches: [main]
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}     # e.g. ghcr.io/jake0lawrence/writebook
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      packages: write     # push to GHCR
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
 
-      # ── login to GHCR ─────────────────────────────
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      # log in ONLY to GHCR
+      - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── login to ONCE registry ───────────────────
-      - name: Log in to ONCE registry
-        uses: docker/login-action@v3
-        with:
-          registry: registry.once.com
-          username: ${{ secrets.ONCE_TOKEN }}
-          password: ${{ secrets.ONCE_TOKEN }}
-
-      # ── build & push image ───────────────────────
       - name: Build image
         run: |
           docker build \
             --build-arg SECRET_KEY_BASE=${{ secrets.SECRET_KEY_BASE }} \
             -t $IMAGE_NAME:${{ github.sha }} .
+
       - name: Push image
         run: docker push $IMAGE_NAME:${{ github.sha }}
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-
     steps:
-      - name: Pull & restart on droplet
-        uses: appleboy/ssh-action@v1.0.0
+      - uses: appleboy/ssh-action@v1.0.0
         with:
           host:     ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
@@ -55,6 +43,6 @@ jobs:
           script: |
             docker pull $IMAGE_NAME:${{ github.sha }}
             docker tag  $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
-            cd /opt/once/current    # adjust if your compose file lives elsewhere
+            cd /opt/once/current    # path with docker-compose.yml
             docker compose up -d
             echo "✅ Deployed $IMAGE_NAME:${{ github.sha }}"
