@@ -12,7 +12,7 @@ if (!slug) {
   process.exit(1);
 }
 
-const meta = await (await fetch(`https://books.jakelawrence.io/${slug}.json`)).json();
+const meta = (await fetch(`https://books.jakelawrence.io/${slug}.json`)).json();
 const text = `📖 ${meta.title}\n\n${meta.summary}\n\nRead full chapter 👇\n${meta.url}`;
 
 const client = new TwitterApi(process.env.TW_BEARER);
