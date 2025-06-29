@@ -1,4 +1,1 @@
-echo "3.3.5" > .ruby-version
-git add .ruby-version
-git commit -m "chore: add .ruby-version for linters"
-git push
+3.3.5
